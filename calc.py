@@ -71,10 +71,11 @@ class Comma(Token):
 def tokenize(expr):
     r = re.compile(
         r"[\d]+(?:\.\d+)?(?:[eE][-+]?\d+)?"     # Numbers
-        r"|[+\-*/^!%\(\),]"                      # Operators
+        r"|[+\-*/^!%\(\),]"                     # Operators
         r"|sinh|cosh|tanh|sin|cos|tan"          # Functions
         r"|ln|log10|sqrt|cbrt|yroot|logy"
         r"|asinh|acosh|atanh|asin|acos|atan"
+        r"|PI|E"                                # Constants
     )
 
     tokens = []
@@ -109,6 +110,9 @@ def tokenize(expr):
             case "asinh": tokens.append(Function(asinh_, 1, "asinh"))
             case "acosh": tokens.append(Function(acosh_, 1, "acosh"))
             case "atanh": tokens.append(Function(atanh_, 1, "atanh"))
+
+            case "PI": tokens.append(Number(math.pi))
+            case "E": tokens.append(Number(math.e))
 
             case _: tokens.append(Number(token))
 

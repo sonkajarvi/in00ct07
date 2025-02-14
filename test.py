@@ -2,11 +2,8 @@ import numpy as np
 from calc import *
 
 def test(expr, expected):
-
     tokens = tokenize(expr)
-
     rpn = shunting_yard(tokens)
-
     result = eval_rpn(rpn)
 
     if not np.isclose(result, expected):
@@ -52,3 +49,8 @@ test("atan(0.5)", np.arctan(0.5))
 test("asinh(1.5)", np.arcsinh(1.5))
 test("acosh(1.5)", np.arccosh(1.5))
 test("atanh(0.5)", np.arctanh(0.5))
+
+# Constants
+test("PI", np.pi)
+test("E", np.e)
+test("PI+E", np.pi + np.e)
