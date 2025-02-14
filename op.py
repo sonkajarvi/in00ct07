@@ -74,3 +74,6 @@ def acosh_(x):
 
 def atanh_(x):
     return math.atanh(x)
+
+def max_(x, y):
+    return max(x, y)
