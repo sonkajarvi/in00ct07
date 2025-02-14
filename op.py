@@ -4,19 +4,19 @@ def add_(x, y):
     return x + y
 
 def sub_(x, y):
-    return x - y
+    return y - x
 
 def mul_(x, y):
     return x * y
 
 def div_(x, y):
-    return x / y
+    return y / x
 
 def pow_(x, y):
-    return x ** y
+    return y ** x
 
 def fact_(x):
-    return math.factorial(x)
+    return math.gamma(x + 1)
 
 def perc_(x):
     return x / 100
@@ -52,10 +52,10 @@ def cbrt_(x):
     return x ** (1 / 3)
 
 def yroot_(x, y):
-    return x ** (1 / y)
+    return y ** (1 / x)
 
 def logy_(x, y):
-    return math.log(x, y)
+    return math.log(y, x)
 
 def asin_(x):
     return math.asin(x)
@@ -74,6 +74,3 @@ def acosh_(x):
 
 def atanh_(x):
     return math.atanh(x)
-
-def max_(x, y):
-    return max(x, y)

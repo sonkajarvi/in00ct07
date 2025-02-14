@@ -72,9 +72,9 @@ def tokenize(expr):
     r = re.compile(
         r"[\d]+(?:\.\d+)?(?:[eE][-+]?\d+)?"     # Numbers
         r"|[+\-*/^!%\(\),]"                      # Operators
-        r"|sin|cos|tan|sinh|cosh|tanh"          # Functions
+        r"|sinh|cosh|tanh|sin|cos|tan"          # Functions
         r"|ln|log10|sqrt|cbrt|yroot|logy"
-        r"|asin|acos|atan|asinh|acosh|atanh"
+        r"|asinh|acosh|atanh|asin|acos|atan"
     )
 
     tokens = []
@@ -109,7 +109,6 @@ def tokenize(expr):
             case "asinh": tokens.append(Function(asinh_, 1, "asinh"))
             case "acosh": tokens.append(Function(acosh_, 1, "acosh"))
             case "atanh": tokens.append(Function(atanh_, 1, "atanh"))
-            case "max": tokens.append(Function(max_, 2, "max"))
 
             case _: tokens.append(Number(token))
 
@@ -201,18 +200,20 @@ def shunting_yard(tokens):
 
     return output_queue
 
-def test(expr):
-    print(expr)
+def eval_rpn(rpn):
+    stack = []
 
-    tokens = tokenize(expr)
-    print(*tokens)
+    for token in rpn:
+        match token:
+            case Number():
+                stack.append(token.value)
 
-    yard = shunting_yard(tokens)
-    print(*yard)
+            case Function():
+                args = [stack.pop() for _ in range(token.argc)]
+                stack.append(token.func(*args))
 
-test("3+4*2/(1-5)^2^3")
-# test("1e3")
-# test("(1+2)*3")
-# test("0.4+1.6")
-# test("sin(0.5)")
-# test("yroot(25,2)")
+            case Operator():
+                args = [stack.pop() for _ in range(token.argc)]
+                stack.append(token.func(*args))
+
+    return stack[0]
