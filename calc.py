@@ -43,8 +43,8 @@ class Number(Token):
         self.repr = f"{self.value:g}"
 
 class Function(Token):
-    def __init__(self, func, argc, repr, sign):
-        self.func = lambda *x: func(*x) * sign
+    def __init__(self, func, argc, repr):
+        self.func = lambda *x: func(*x)
         self.argc = argc
         self.repr = repr
 
@@ -54,6 +54,11 @@ class Operator(Token):
         self.argc = argc
         self.prec = prec
         self.assoc = assoc
+        self.repr = repr
+
+class Constant(Token):
+    def __init__(self, value, repr):
+        self.value = value
         self.repr = repr
 
 class ParenLeft(Token):
@@ -70,23 +75,17 @@ class Comma(Token):
 
 def tokenize(expr):
     r = re.compile(
-        r"(?:(?<=\d)+\-(?=[\d\(])+)|[+*/^!%\(\),]"      # Operators
-        r"|(?:[-]?[\d]+(?:\.\d+)?(?:[eE][-+]?\d+)?)"    # Numbers
-        r"|(?:[-]?(?:sinh|cosh|tanh|sin|cos|tan"        # Functions
+        r"(?<=[\d\)])?\-(?=[\d\D\(-])+|[+*/^!%\(\),]"   # Operators
+        r"|\-?[\d]+(?:\.\d+)?(?:[eE][-+]?\d+)?"         # Numbers
+        r"|sinh|cosh|tanh|sin|cos|tan"                  # Functions
         r"|ln|log10|sqrt|cbrt|yroot|logy"
         r"|asinh|acosh|atanh|asin|acos|atan"
-        r"|PI|E))"                                      # Constants
+        r"|PI|E"                                        # Constants
     )
 
     tokens = []
+
     for token in r.findall(expr):
-        sign = 1
-        if (token[0] == "-"):
-            sign = -1
-
-            if (len(token) > 1 and token[1:].isalpha()):
-                token = token[1:]
-
         match token:
             case "+": tokens.append(Operator(add_, 2, 2, "left", "+"))
             case "-": tokens.append(Operator(sub_, 2, 2, "left", "-"))
@@ -99,27 +98,27 @@ def tokenize(expr):
             case ")": tokens.append(ParenRight())
             case ",": tokens.append(Comma())
 
-            case "sin": tokens.append(Function(sin_, 1, "sin", sign))
-            case "cos": tokens.append(Function(cos_, 1, "cos", sign))
-            case "tan": tokens.append(Function(tan_, 1, "tan", sign))
-            case "sinh": tokens.append(Function(sinh_, 1, "sinh", sign))
-            case "cosh": tokens.append(Function(cosh_, 1, "cosh", sign))
-            case "tanh": tokens.append(Function(tanh_, 1, "tanh", sign))
-            case "ln": tokens.append(Function(ln_, 1, "ln", sign))
-            case "log10": tokens.append(Function(log10_, 1, "log10", sign))
-            case "sqrt": tokens.append(Function(sqrt_, 1, "sqrt", sign))
-            case "cbrt": tokens.append(Function(cbrt_, 1, "cbrt", sign))
-            case "yroot": tokens.append(Function(yroot_, 2, "yroot", sign))
-            case "logy": tokens.append(Function(logy_, 2, "logy", sign))
-            case "asin": tokens.append(Function(asin_, 1, "asin", sign))
-            case "acos": tokens.append(Function(acos_, 1, "acos", sign))
-            case "atan": tokens.append(Function(atan_, 1, "atan", sign))
-            case "asinh": tokens.append(Function(asinh_, 1, "asinh", sign))
-            case "acosh": tokens.append(Function(acosh_, 1, "acosh", sign))
-            case "atanh": tokens.append(Function(atanh_, 1, "atanh", sign))
+            case "sin": tokens.append(Function(sin_, 1, "sin"))
+            case "cos": tokens.append(Function(cos_, 1, "cos"))
+            case "tan": tokens.append(Function(tan_, 1, "tan"))
+            case "sinh": tokens.append(Function(sinh_, 1, "sinh"))
+            case "cosh": tokens.append(Function(cosh_, 1, "cosh"))
+            case "tanh": tokens.append(Function(tanh_, 1, "tanh"))
+            case "ln": tokens.append(Function(ln_, 1, "ln"))
+            case "log10": tokens.append(Function(log10_, 1, "log10"))
+            case "sqrt": tokens.append(Function(sqrt_, 1, "sqrt"))
+            case "cbrt": tokens.append(Function(cbrt_, 1, "cbrt"))
+            case "yroot": tokens.append(Function(yroot_, 2, "yroot"))
+            case "logy": tokens.append(Function(logy_, 2, "logy"))
+            case "asin": tokens.append(Function(asin_, 1, "asin"))
+            case "acos": tokens.append(Function(acos_, 1, "acos"))
+            case "atan": tokens.append(Function(atan_, 1, "atan"))
+            case "asinh": tokens.append(Function(asinh_, 1, "asinh"))
+            case "acosh": tokens.append(Function(acosh_, 1, "acosh"))
+            case "atanh": tokens.append(Function(atanh_, 1, "atanh"))
 
-            case "PI": tokens.append(Number(math.pi))
-            case "E": tokens.append(Number(math.e))
+            case "PI": tokens.append(Constant(math.pi, "PI"))
+            case "E": tokens.append(Constant(math.e, "E"))
 
             case _: tokens.append(Number(token))
 
@@ -133,15 +132,14 @@ def shunting_yard(tokens):
     # while there are tokens to be read:
     #     read a token
     for token in tokens:
-        # print(output_queue)
-        # print(op_stack)
-        # print()
-
         # if the token is:
         match token:
             # - a number:
             #     put it into the output queue
             case Number():
+                output_queue.append(token)
+
+            case Constant():
                 output_queue.append(token)
 
             # - a function:
@@ -158,9 +156,11 @@ def shunting_yard(tokens):
             #         pop o2 from the operator stack into the output queue
             #     push o1 onto the operator stack
             case Operator():
-                while op_stack and isinstance(op_stack[-1], Operator) and not (isinstance(op_stack[-1], ParenLeft)) and \
-                    (op_stack[-1].prec > token.prec or (op_stack[-1].prec == token.prec and token.assoc == "left")):
-                        output_queue.append(op_stack.pop())
+                # Hack: Special case for negative exponents
+                if not (op_stack and op_stack[-1].repr == "^" and token.repr == "-"):
+                    while op_stack and isinstance(op_stack[-1], Operator) and not (isinstance(op_stack[-1], ParenLeft)) and \
+                        (op_stack[-1].prec > token.prec or (op_stack[-1].prec == token.prec and token.assoc == "left")):
+                            output_queue.append(op_stack.pop())
 
                 op_stack.append(token)
 
@@ -206,7 +206,7 @@ def shunting_yard(tokens):
     #
     #     pop the operator from the operator stack onto the output queue
     while op_stack:
-        # assert not isinstance(op_stack[-1], ParenLeft)
+        assert not isinstance(op_stack[-1], ParenLeft)
         output_queue.append(op_stack.pop())
 
     return output_queue
@@ -214,9 +214,12 @@ def shunting_yard(tokens):
 def eval_rpn(rpn):
     stack = []
 
-    for token in rpn:
+    for i, token in enumerate(rpn):
         match token:
             case Number():
+                stack.append(token.value)
+
+            case Constant():
                 stack.append(token.value)
 
             case Function():
@@ -224,6 +227,15 @@ def eval_rpn(rpn):
                 stack.append(token.func(*args))
 
             case Operator():
+                if token.repr == "-":
+                    if (len(stack) == 1 or (i < len(rpn) - 1 and rpn[i + 1].repr == "-")) \
+                        or (i < len(rpn) - 1 and rpn[i + 1].repr == "^"):
+                            stack.append(-stack.pop())
+                            continue
+
+                if len(stack) < token.argc:
+                    raise Exception(f"Not enough arguments in stack: {stack}")
+
                 args = [stack.pop() for _ in range(token.argc)]
                 stack.append(token.func(*args))
 

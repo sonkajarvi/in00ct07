@@ -2,20 +2,28 @@ import numpy as np
 from calc import *
 
 def test(expr, expected):
-    tokens = tokenize(expr)
-    rpn = shunting_yard(tokens)
-    result = eval_rpn(rpn)
+    result = float("nan")
 
-    if not np.isclose(result, expected):
-        print(f"\033[1;91m{expr} != {result}, expected {expected}\033[0m")
-        print("Expr:  ", expr)
-        print("Tokens:", *tokens)
-        print("RPN:   ", *rpn)
-        print("Result:", result)
+    try:
+        tokens = tokenize(expr)
+        rpn = shunting_yard(tokens)
+        result = eval_rpn(rpn)
+
+        if not np.isclose(result, expected):
+            raise Exception("Wrong result")
+
+    except Exception as e:
+        print(f"\033[1;91m{expr} != {result}, expected {expected},")
+        print(f"due to: {e}\033[0m")
+
+        print("> Expr:  ", expr)
+        print("> Tokens:", *tokens)
+        print("> RPN:   ", *rpn)
+        print("> Result:", result)
 
         exit()
 
-    print(f"{expr} = {result}")
+    print(f"{expr} = {result:g}\033[90m, expected {expected:g}\033[0m")
 
 # Operators
 test("3+4", 7)
@@ -31,8 +39,18 @@ test("5%", 0.05)
 test("-5", -5)
 test("5-5", 0)
 test("5-(-5)", 10)
+test("(-5)-5", -10)
+test("(-5)-(-5)", 0)
+test("-5--5", 0)
 test("-5%", -0.05)
+test("-(5)", -5)
+test("-PI", -np.pi)
+test("5-(-PI)", 5-(-np.pi))
 test("-sin(0.5)", -np.sin(0.5))
+test("5-(-sin(0.5))", 5-(-np.sin(0.5)))
+test("5^-5", 5**-5)
+test("-sin(0.5)^-PI", -np.sin(0.5)**-np.pi)
+test("5^-(5)", 5**-(5))
 
 # Functions
 test("sin(0.5)", np.sin(0.5))
