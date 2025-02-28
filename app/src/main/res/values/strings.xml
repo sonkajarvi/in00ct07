@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Calculator</string>
+    <string name="history_title">History</string>
+    <string name="back_button">Back button</string>
+    <string name="dropdown_menu">Dropdown menu</string>
+    <string name="remove_entry">Remove entry</string>
+</resources>
